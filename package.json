@@ -9,9 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.93.0",
+    "@runwayml/avatars-react": "^0.14.0",
+    "@runwayml/sdk": "^3.20.0",
+    "html-to-image": "^1.11.13",
+    "konva": "^10.3.0",
+    "lottie-react": "^2.4.1",
     "next": "16.2.4",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "react-konva": "^19.2.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

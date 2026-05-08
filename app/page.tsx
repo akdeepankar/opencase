@@ -1,65 +1,106 @@
-import Image from "next/image";
+"use client";
+import { useState, useCallback } from "react";
+import { GamePhase, Case, DetectiveCharacter, CaseAnswer } from "./types";
+import LandingScreen from "./components/LandingScreen";
+import LoadingScreen from "./components/LoadingScreen";
+import Dashboard from "./components/Dashboard";
+import CaseView from "./components/CaseView";
+import ReportScreen from "./components/ReportScreen";
+import CinematicScreen from "./components/CinematicScreen";
+import { DEMO_TOPIC, DEMO_CHARACTER, DEMO_CASES, DEMO_INVESTIGATION_TITLE } from "./demoData";
 
 export default function Home() {
+  const [phase, setPhase] = useState<GamePhase>("landing");
+  const [topic, setTopic] = useState("");
+  const [investigationTitle, setInvestigationTitle] = useState("");
+  const [character, setCharacter] = useState<DetectiveCharacter | null>(null);
+  const [cases, setCases] = useState<Case[]>([]);
+  const [currentCaseIndex, setCurrentCaseIndex] = useState(0);
+  const [answers, setAnswers] = useState<CaseAnswer[]>([]);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleStart = useCallback(async (inputTopic: string) => {
+    setTopic(inputTopic);
+    setPhase("loading");
+    setError(null);
+
+    // Skip API for demo mode
+    if (inputTopic === DEMO_TOPIC) {
+      setTimeout(() => {
+        setCharacter(DEMO_CHARACTER);
+        setInvestigationTitle(DEMO_INVESTIGATION_TITLE);
+        setCases(DEMO_CASES.map((c, i) => ({ ...c, status: i === 0 ? "unlocked" : "locked" })));
+        setCurrentCaseIndex(0);
+        setAnswers([]);
+        setPhase("cinematic");
+      }, 1000); // Small delay for "loading" feel
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/generate-cases", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ topic: inputTopic }),
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error || "Failed to generate cases"); }
+      const data = await res.json();
+      if (!data.character || !data.cases?.length) throw new Error("Invalid AI response");
+      setCharacter(data.character);
+      setInvestigationTitle(data.investigation_title || inputTopic);
+      setCases(data.cases.map((c: Case, i: number) => ({ ...c, status: i === 0 ? "unlocked" : "locked" })));
+      setCurrentCaseIndex(0);
+      setAnswers([]);
+      setPhase("cinematic");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setPhase("landing");
+    }
+  }, []);
+
+  const handleSelectCase = useCallback((i: number) => { setCurrentCaseIndex(i); setPhase("case"); }, []);
+
+  const handleCaseSolved = useCallback((feedback: string, attemptCount: number) => {
+    const cur = cases[currentCaseIndex];
+    setAnswers(prev => [...prev, { caseId: cur.case_id, correct: true, attempts: attemptCount, userAnswer: "", feedback }]);
+    setCases(prev => prev.map((c, i) => {
+      if (i === currentCaseIndex) return { ...c, status: "completed" as const };
+      if (i === currentCaseIndex + 1 && c.status === "locked") return { ...c, status: "unlocked" as const };
+      return c;
+    }));
+    setPhase(currentCaseIndex === cases.length - 1 ? "report" : "dashboard");
+  }, [cases, currentCaseIndex]);
+
+  const handleRestart = useCallback(() => {
+    setPhase("landing"); setTopic(""); setInvestigationTitle(""); setCharacter(null); setCases([]); setCurrentCaseIndex(0); setAnswers([]); setError(null);
+  }, []);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="min-h-screen relative">
+      {/* Layered backgrounds */}
+      <div className="bg-mesh" />
+      <div className="bg-grid" />
+      <div className="bg-scanline" />
+
+      {/* Error toast */}
+      {error && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 anim-slideDown">
+          <div className="feedback-error flex items-center gap-3 px-5 py-3 shadow-2xl">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="m15 9-6 6" /><path d="m9 9 6 6" /></svg>
+            <p className="text-sm text-red-200">{error}</p>
+            <button onClick={() => setError(null)} className="text-zinc-500 hover:text-white ml-2 text-lg">×</button>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      )}
+
+      {phase === "landing" && <LandingScreen onStart={handleStart} />}
+      {phase === "loading" && <LoadingScreen topic={topic} />}
+      {phase === "cinematic" && <CinematicScreen onComplete={() => setPhase("dashboard")} />}
+      {phase === "dashboard" && character && <Dashboard topic={topic} investigationTitle={investigationTitle} character={character} cases={cases} onSelectCase={handleSelectCase} />}
+      {phase === "case" && character && cases[currentCaseIndex] && (
+        <CaseView caseData={cases[currentCaseIndex]} caseIndex={currentCaseIndex} totalCases={cases.length}
+          character={character} topic={topic} onSolved={handleCaseSolved} onBack={() => setPhase("dashboard")} />
+      )}
+      {phase === "report" && character && <ReportScreen topic={topic} investigationTitle={investigationTitle} character={character} cases={cases} answers={answers} onRestart={handleRestart} />}
     </div>
   );
 }
