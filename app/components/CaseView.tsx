@@ -515,7 +515,12 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
       });
       const d = await res.json();
       setFeedback({ correct: d.correct, message: d.feedback });
-      if (d.correct) setTimeout(() => onSolved(d.feedback, n), 2200);
+      if (d.correct) {
+        // Clear detective if generated when case is completed
+        setAvatarData(null);
+        setAvatarSession(null);
+        setTimeout(() => onSolved(d.feedback, n), 2200);
+      }
     } catch { setFeedback({ correct: false, message: "Something went wrong." }); }
     finally { setIsEval(false); }
   }, [answer, isEval, attempts, topic, caseData, onSolved]);
