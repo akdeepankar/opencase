@@ -42,6 +42,7 @@ export interface Case {
 
 export interface DetectiveCharacter {
   name: string;
+  role?: string;
   personality: string;
   tone: string;
   expertise: string;

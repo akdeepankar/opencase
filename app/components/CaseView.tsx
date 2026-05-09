@@ -214,7 +214,8 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
           topic: topic,
           caseTitle: caseData.title,
           scenario: caseData.scenario,
-          hint: caseData.hint
+          hint: caseData.hint,
+          fullCaseData: caseData // Pass entire case structure for knowledge base
         })
       });
 
@@ -618,24 +619,6 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
 
             {activeTab === "mission" && (
               <div className="space-y-8 anim-fadeIn max-w-4xl mx-auto">
-                {/* Detective Briefing - Paper Dossier Format */}
-                <div className="texture-paper p-10 mb-10 relative anim-fadeInUp overflow-hidden">
-                  <div className="paperclip" />
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
-                    <span className="text-[10px] font-black text-amber-900/60 uppercase tracking-[0.3em]">Neural Briefing: Detective {character.name}</span>
-                  </div>
-                  <div className="text-black font-serif italic border-l-4 border-black/10 pl-8">
-                    <div className="text-2xl text-black font-black leading-tight mb-2 uppercase tracking-tighter not-italic">Briefing Intelligence</div>
-                    <div className="text-xl text-black font-bold leading-relaxed">
-                      <Typewriter text={caseData.character_dialogue} speed={25} />
-                    </div>
-                  </div>
-                  <div className="absolute bottom-4 right-8 opacity-20">
-                    <p className="text-[8px] font-mono uppercase tracking-widest text-amber-900">Encrypted_Transmission_404</p>
-                  </div>
-                </div>
-
                 {/* ── CASE HEADER (PAPER SHEET) ── */}
                 <div className="texture-paper p-10 pb-16 relative anim-fadeInUp overflow-hidden">
                   <div className="paperclip" />
@@ -1389,7 +1372,7 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
                       <div className="w-12 h-12 rounded-full bg-emerald-500/5 flex items-center justify-center border border-emerald-500/10 mb-1">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-emerald-500/40"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
                       </div>
-                      <span className="text-[8px] text-emerald-500 font-black uppercase tracking-[0.3em]">Initialize Agent</span>
+                      <span className="text-[8px] text-emerald-500 font-black uppercase tracking-[0.3em]">Call Agent</span>
                     </>
                   )}
                 </button>
@@ -1402,7 +1385,7 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
                       <Suspense fallback={
                         <div className="w-full h-full flex flex-col items-center justify-center gap-4 bg-[#0a110e]">
                           <div className="w-10 h-10 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
-                          <span className="text-[10px] font-mono text-emerald-500 uppercase tracking-widest text-center px-4">Establishing Neural Stream...</span>
+                          <span className="text-[10px] font-mono text-emerald-500 uppercase tracking-widest text-center px-4">Establishing Connection...</span>
                         </div>
                       }>
                         <AvatarCall
@@ -1454,10 +1437,11 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
                     </div>
                   )}
                 </div>
-                {/* Detective Name Label */}
                 <div className="mt-2 flex items-center gap-2 px-1">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <p className="font-black text-xs text-amber-100 uppercase tracking-widest">Detective {character.name}</p>
+                  <p className="font-black text-xs text-amber-100 uppercase tracking-widest">
+                    {character.role || (character.name.match(/^(Detective|Inspector|Dr|Doctor)/i) ? '' : 'Detective')} {character.name}
+                  </p>
                 </div>
               </div>
             )}
@@ -1465,9 +1449,28 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
 
           {/* Scrollable Investigation Area */}
           <div className="flex-1 overflow-y-auto scrollbar-hide">
-            {/* Panel Header - Now Question */}
-            {/* Panel Header - Now Question (HIGH CONTRAST) */}
-            <div className="shrink-0 px-8 py-6 border-b border-black/40 bg-black/60 shadow-inner">
+            {/* Detective Briefing - Intelligence Bubble (Top Format) */}
+            <div className="p-4 bg-amber-950/10 border-b border-black/20 relative overflow-hidden">
+              <div className="bg-amber-950/20 backdrop-blur-md border border-amber-500/10 p-6 rounded-2xl rounded-bl-none relative anim-slideUp shadow-2xl">
+                {/* Bubble Arrow pointing down toward the Question */}
+                <div className="absolute -bottom-2 left-8 w-4 h-4 bg-amber-950/40 rotate-45 border-r border-b border-amber-500/10 z-0" />
+
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[10px] font-black text-emerald-500/60 uppercase tracking-widest">Neural Link: {character.name}</span>
+                  </div>
+                  <div className="text-amber-100 font-serif italic border-l-2 border-amber-500/20 pl-4">
+                    <div className="text-sm text-amber-50 font-bold leading-relaxed">
+                      <Typewriter text={caseData.character_dialogue} speed={25} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Panel Header - Now Question (WIDE & HIGH CONTRAST) */}
+            <div className="shrink-0 px-4 py-6 border-b border-black/40 bg-black/60 shadow-inner">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
                 <p className="text-[10px] text-amber-400 font-black uppercase tracking-[0.3em]">Investigation Question</p>
@@ -1475,57 +1478,54 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
               <p className="text-white font-black text-lg leading-snug tracking-tight font-serif italic underline decoration-amber-500/40 underline-offset-4">
                 {caseData.question}
               </p>
+            </div>
 
-
-              {/* Answer Input (Wide Format) */}
-              <div className="shrink-0 p-4 bg-amber-950/5">
-                <textarea
-                  value={answer}
-                  onChange={(e) => setAnswer(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
-                  placeholder="Type your final analysis report here..."
-                  className="w-full h-24 bg-black/50 border border-black/20 rounded-lg p-5 text-amber-100 text-sm focus:ring-1 focus:ring-amber-500/50 outline-none transition-all placeholder:text-amber-100/10 font-mono mb-4"
-                  disabled={feedback?.correct}
-                />
-                <button onClick={submit} disabled={!answer.trim() || isEval || feedback?.correct} className="w-full py-4 rounded bg-gradient-to-b from-amber-700 to-amber-900 border border-amber-600/30 text-amber-100 font-black text-sm uppercase tracking-[0.4em] hover:brightness-110 disabled:opacity-30 disabled:grayscale transition-all shadow-xl shadow-black/40">
-                  {isEval ? (
-                    <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Analyzing</>
-                  ) : feedback?.correct ? (
-                    <>Submitted</>
-                  ) : (
-                    <>Submit Report</>
-                  )}
-                </button>
-              </div>
-
-              {/* Feedback / Debrief */}
-              <div className="px-8 py-6">
-                {feedback ? (
-                  <div className="anim-slideUp space-y-6">
-                    <div className={`p-5 rounded border ${feedback.correct ? "bg-emerald-500/10 border-emerald-500/20" : "bg-red-500/10 border-red-500/20"}`}>
-                      <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${feedback.correct ? "text-emerald-400" : "text-red-400"}`}>
-                        {feedback.correct ? "Transmission Successful" : "Data Inconsistent"}
-                      </p>
-                      <p className="text-sm text-amber-100/80 leading-relaxed font-serif italic">{feedback.message}</p>
-                    </div>
-                    {feedback.correct && (
-                      <div className="texture-paper !p-6 !rounded-sm !shadow-none !bg-white/5 border border-white/5">
-                        <p className="text-[10px] text-amber-100/20 font-black uppercase tracking-[0.3em] mb-4">Official Debriefing</p>
-                        <p className="text-xs text-amber-100/40 leading-relaxed font-serif italic">{caseData.explanation}</p>
-                      </div>
-                    )}
-                  </div>
+            <div className="shrink-0 p-4 bg-amber-950/5">
+              <textarea
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
+                placeholder="Type your final analysis report here..."
+                className="w-full h-24 bg-black/50 border border-black/20 rounded-lg p-5 text-amber-100 text-sm focus:ring-1 focus:ring-amber-500/50 outline-none transition-all placeholder:text-amber-100/10 font-mono mb-4"
+                disabled={feedback?.correct}
+              />
+              <button onClick={submit} disabled={!answer.trim() || isEval || feedback?.correct} className="w-full py-4 rounded bg-gradient-to-b from-amber-700 to-amber-900 border border-amber-600/30 text-amber-100 font-black text-sm uppercase tracking-[0.4em] hover:brightness-110 disabled:opacity-30 disabled:grayscale transition-all shadow-xl shadow-black/40">
+                {isEval ? (
+                  <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Analyzing</>
+                ) : feedback?.correct ? (
+                  <>Submitted</>
                 ) : (
-                  <div className="py-12 flex flex-col items-center justify-center text-center opacity-10 grayscale">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
-                    <p className="text-[10px] font-mono text-white mt-4 uppercase tracking-[0.5em]">System Idle</p>
-                  </div>
+                  <>Submit Report</>
                 )}
-              </div>
+              </button>
+            </div>
+
+            {/* Feedback / Debrief */}
+            <div className="px-8 py-6">
+              {feedback ? (
+                <div className="anim-slideUp space-y-6">
+                  <div className={`p-5 rounded border ${feedback.correct ? "bg-emerald-500/10 border-emerald-500/20" : "bg-red-500/10 border-red-500/20"}`}>
+                    <p className={`text-[10px] font-black uppercase tracking-widest mb-2 ${feedback.correct ? "text-emerald-400" : "text-red-400"}`}>
+                      {feedback.correct ? "Transmission Successful" : "Data Inconsistent"}
+                    </p>
+                    <p className="text-sm text-amber-100/80 leading-relaxed font-serif italic">{feedback.message}</p>
+                  </div>
+                  {feedback.correct && (
+                    <div className="texture-paper !p-6 !rounded-sm !shadow-none !bg-white/5 border border-white/5">
+                      <p className="text-[10px] text-amber-100/20 font-black uppercase tracking-[0.3em] mb-4">Official Debriefing</p>
+                      <p className="text-xs text-amber-100/40 leading-relaxed font-serif italic">{caseData.explanation}</p>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="py-12 flex flex-col items-center justify-center text-center opacity-10 grayscale">
+                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" /></svg>
+                  <p className="text-[10px] font-mono text-white mt-4 uppercase tracking-[0.5em]">System Idle</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Zoom Overlay (Modal style) - Placed at root for visibility across all tabs */}

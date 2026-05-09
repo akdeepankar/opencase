@@ -3,17 +3,42 @@ import { createAvatar, generateImage, createDocument } from "../../lib/runway";
 
 export async function POST(request: NextRequest) {
   try {
-    const { name, personality, gender, topic, caseTitle, scenario, hint } = await request.json();
+    const body = await request.json();
+    const { name, personality, gender, topic, caseTitle, scenario, hint, fullCaseData } = body;
 
     if (!process.env.RUNWAYML_API_SECRET) {
       return Response.json({ error: "RUNWAYML_API_SECRET not configured" }, { status: 500 });
     }
+    
+    const appInstructions = `
+APP OPERATING PROCEDURES (FOR AGENT GUIDANCE):
+- The investigator must solve the case by finding the correct answer to the "Investigation Question".
+- EVIDENCE BOARD: This tab contains primary files. The investigator should examine images and text closely.
+- TERMINAL PASSWORD: The security key for the Evidence Terminal is often hidden within the files on the Evidence Board. Tell the user to "Look for numbers or codes hidden in the evidence images or descriptions."
+- FORENSIC LAB: Users can drag items to the analyzer nodes to generate "Combinations". This is essential for discovering hidden clues.
+- EVIDENCE TERMINAL: Once unlocked, this provides CCTV video or Audio intercepts.
+- SUBMITTING REPORT: The final answer must be typed into the "Analysis Terminal" on the right panel.
+    `.trim();
 
-    // 1. Create a knowledge document with case details
+    const caseKnowledge = `
+CASE FILE: ${caseTitle}
+TOPIC: ${topic}
+SCENARIO: ${scenario}
+OFFICIAL HINT: ${hint}
+
+DETAILED EVIDENCE:
+${fullCaseData?.evidence ? JSON.stringify(fullCaseData.evidence, null, 2) : "No extra evidence data provided."}
+
+CORE CLUES:
+${fullCaseData?.clues ? fullCaseData.clues.join("\n- ") : "No specific clues listed."}
+
+${appInstructions}
+    `.trim();
+
     console.log(`[Avatar] Creating knowledge document for case: ${caseTitle}`);
     const knowledgeDoc = await createDocument(
       `Case_${caseTitle.replace(/\s+/g, '_')}`,
-      `Topic: ${topic}\nInvestigation: ${caseTitle}\nScenario: ${scenario}\nHints for Investigator: ${hint}`
+      caseKnowledge
     );
 
     // Determine voice based on gender
