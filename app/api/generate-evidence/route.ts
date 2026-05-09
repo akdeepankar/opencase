@@ -21,8 +21,10 @@ export async function POST(request: NextRequest) {
 
     console.log(`[Evidence] Generating ${prompts.length} evidence items of type ${type}...`);
 
-    const results = await Promise.allSettled(
-      prompts.map(async (item: { id: string; prompt: string; ratio?: string; presetId?: string }) => {
+    const results = [];
+    for (let i = 0; i < prompts.length; i++) {
+      const item = prompts[i];
+      try {
         let task;
         if (type === 'video') {
           task = await generateVideo({
@@ -37,14 +39,21 @@ export async function POST(request: NextRequest) {
         } else {
           task = await generateImage({
             promptText: item.prompt,
-            ratio: (item.ratio as '1280:720') || '1280:720',
+            ratio: (item.ratio as any) || '1280:720',
           });
         }
 
         const outputUrl = task.output?.[0] || null;
-        return { id: item.id, url: outputUrl };
-      })
-    );
+        results.push({ status: 'fulfilled', value: { id: item.id, url: outputUrl } });
+      } catch (error) {
+        results.push({ status: 'rejected', reason: error });
+      }
+      
+      // Add a 1 second stagger between tasks to avoid hitting concurrency limits
+      if (i < prompts.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
 
     const generatedItems = results.map((result, index) => {
       if (result.status === "fulfilled") {

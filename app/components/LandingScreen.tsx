@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { DEMO_TOPIC } from "../demoData";
+import { DEMO_TOPIC, PHOTOSYNTHESIS_TOPIC } from "../demoData";
 
 const TOPICS = [
   { label: "Murder Mystery", icon: "🕵️‍♂️" },
@@ -139,8 +139,19 @@ export default function LandingScreen({ onStart }: LandingScreenProps) {
                   className="flex items-center justify-between p-3 px-4 bg-white border border-amber-900/5 hover:border-amber-700/30 rounded-sm transition-all group"
                 >
                   <div className="flex items-center gap-3">
-                    <span className="text-lg">⚡</span>
-                    <span className="text-sm font-bold text-amber-900">{DEMO_TOPIC}</span>
+                    <span className="text-lg">🕵️‍♂️</span>
+                    <span className="text-sm font-bold text-amber-900">{DEMO_TOPIC.replace("🕵️‍♂️ ", "")}</span>
+                  </div>
+                  <span className="text-[9px] font-mono text-emerald-600 font-bold opacity-0 group-hover:opacity-100 uppercase tracking-widest transition-opacity">Ready</span>
+                </button>
+
+                <button
+                  onClick={() => onStart(PHOTOSYNTHESIS_TOPIC)}
+                  className="flex items-center justify-between p-3 px-4 bg-white border border-amber-900/5 hover:border-amber-700/30 rounded-sm transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">🌿</span>
+                    <span className="text-sm font-bold text-amber-900">{PHOTOSYNTHESIS_TOPIC.replace("🌿 ", "")}</span>
                   </div>
                   <span className="text-[9px] font-mono text-emerald-600 font-bold opacity-0 group-hover:opacity-100 uppercase tracking-widest transition-opacity">Ready</span>
                 </button>

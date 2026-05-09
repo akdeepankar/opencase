@@ -116,6 +116,7 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
   const [evidenceRevealed, setEvidenceRevealed] = useState(false);
   const [evidenceGenerating, setEvidenceGenerating] = useState(false);
   const [generatedImages, setGeneratedImages] = useState<Record<string, string>>({});
+  const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
   const [genProgress, setGenProgress] = useState("");
 
   const handleGenerateEvidence = useCallback(async () => {
@@ -124,7 +125,7 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
     try {
       const prompts = [
         { id: "fieldA", prompt: caseData.evidence.generation_prompt, ratio: "960:720" },
-        { id: "map", prompt: `Clean top-down tactical satellite map of the area described in this scenario: "${caseData.scenario.substring(0, 200)}". Just the map itself, no text overlays or UI. Show the relevant city or location from above, marked investigation zones, location pins, clean cartographic style, muted colors, no clutter`, ratio: "1280:720" },
+        { id: "map", prompt: `A professional cartographic street map based on the specific locations mentioned in this case: "${caseData.title}". Style: clean, modern navigation map (like Google Maps or Apple Maps), including street names, building outlines, and subtle investigative markers or 'hints' such as highlighted areas or suspect waypoints. Minimalistic and realistic.`, ratio: "1280:720" },
         { id: "fieldC", prompt: `Close-up forensic detail photograph related to: ${caseData.evidence.generation_prompt}. Macro lens, evidence markers, dramatic lighting, portrait orientation`, ratio: "720:960" },
       ];
       setGenProgress("Generating evidence images via RunwayML...");
@@ -155,6 +156,39 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
       }, 1200);
     }
   }, [caseData]);
+
+  const handleRetryImage = async (id: string) => {
+    if (retryingIds.has(id)) return;
+    setRetryingIds(prev => new Set(prev).add(id));
+    
+    try {
+      let prompt = "";
+      let ratio = "1280:720";
+      if (id === "fieldA") { prompt = caseData.evidence.generation_prompt; ratio = "960:720"; }
+      if (id === "fieldC") { prompt = `Close-up forensic detail photograph related to: ${caseData.evidence.generation_prompt}. Macro lens, evidence markers, dramatic lighting, portrait orientation`; ratio = "720:960"; }
+      if (id === "map") prompt = `A professional cartographic street map based on the specific locations mentioned in this case: "${caseData.title}". Style: clean, modern navigation map (like Google Maps or Apple Maps), including street names, building outlines, and subtle investigative markers or 'hints' such as highlighted areas or suspect waypoints. Minimalistic and realistic.`;
+
+      const res = await fetch("/api/generate-evidence", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompts: [{ id, prompt, ratio }] }),
+      });
+      
+      const data = await res.json();
+      const result = data.items.find((item: any) => item.id === id);
+      if (result?.url) {
+        setGeneratedImages(prev => ({ ...prev, [id]: result.url }));
+      }
+    } catch (err) {
+      console.error("Retry failed:", err);
+    } finally {
+      setRetryingIds(prev => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  };
 
   // Forensic Tab State
   const [nodes, setNodes] = useState<{ id: number; x: number; y: number; text: string; type?: 'text' | 'image'; labId?: string }[]>([]);
@@ -403,7 +437,7 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
             type: 'video',
             prompts: [{
               id: 'terminal_video',
-              prompt: `CCTV footage, grainy high-angle security camera view, date-time overlay, surveillance aesthetic, low frame rate, forensic evidence: ${caseData.terminal_video_prompt || "security sweep"}`
+              prompt: `Authentic CCTV security footage, grainy high-angle surveillance camera view, monochrome or desaturated colors, date-time stamp overlay in corner, digital noise, flickering, static, showing: ${caseData.terminal_video_prompt || "security sweep"}. Highly realistic forensic aesthetic.`
             }]
           })
         }),
@@ -756,9 +790,19 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
                             <p className="text-xs text-amber-500/50 font-mono uppercase tracking-widest">Dossier {caseData.case_id} // Awaiting Materialization</p>
                           </div>
                           {evidenceGenerating ? (
-                            <div className="flex flex-col items-center gap-4">
-                              <div className="w-10 h-10 border-3 border-amber-500/20 border-t-amber-500 rounded-full animate-spin" />
-                              <p className="text-xs text-amber-400/70 font-mono animate-pulse">{genProgress}</p>
+                            <div className="flex flex-col items-center gap-5 w-72">
+                              <div className="w-full h-2 bg-black/40 rounded-full overflow-hidden border border-amber-500/20 relative shadow-[inset_0_2px_4px_rgba(0,0,0,0.3)]">
+                                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-amber-400 to-transparent animate-progress-linear" style={{ width: '60%', left: '-20%' }} />
+                                <div className="absolute inset-0 bg-amber-500/10 animate-pulse" />
+                              </div>
+                              <div className="flex flex-col items-center gap-1">
+                                <p className="text-[10px] text-amber-400 font-mono tracking-[0.2em] uppercase">{genProgress}</p>
+                                <div className="flex gap-1">
+                                  <div className="w-1 h-1 bg-amber-500/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                                  <div className="w-1 h-1 bg-amber-500/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                                  <div className="w-1 h-1 bg-amber-500/40 rounded-full animate-bounce" />
+                                </div>
+                              </div>
                             </div>
                           ) : (
                             <button onClick={handleGenerateEvidence} className="px-8 py-4 bg-gradient-to-b from-amber-600 to-amber-800 text-amber-100 font-black text-sm uppercase tracking-[0.3em] rounded-lg border border-amber-500/30 hover:brightness-110 hover:scale-105 transition-all shadow-2xl shadow-amber-900/40 cursor-pointer">
@@ -807,7 +851,7 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
 
                     {/* Item 3: The Newspaper Clipping */}
                     <div
-                      onClick={() => setZoomedItem("news")}
+                      onClick={() => setZoomedItem("newspaper")}
                       className="absolute w-[200px] bg-[#e5e7eb] p-4 shadow-md border-x-2 border-black/5 cursor-pointer hover:scale-105 transition-transform z-20"
                       style={{
                         top: boardLayout.news.top,
@@ -831,11 +875,24 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
                       style={{ top: boardLayout.fieldA.top, left: boardLayout.fieldA.left, transform: `rotate(${boardLayout.fieldA.rotate})` }}
                     >
                       <div className="pin !bg-blue-600" />
-                      <div className="aspect-[4/3] bg-amber-950/10 relative overflow-hidden flex items-center justify-center border border-amber-800/5">
+                      <div className="aspect-[4/3] bg-amber-950/20 relative overflow-hidden flex items-center justify-center border border-amber-800/10 group/img">
                         {generatedImages.fieldA ? (
                           <img src={generatedImages.fieldA} alt="Field Report A" className="w-full h-full object-cover" />
                         ) : (
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-amber-900/10"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z" /><circle cx="12" cy="13" r="3" /></svg>
+                          <div className="flex flex-col items-center gap-2">
+                            {retryingIds.has("fieldA") ? (
+                              <div className="w-6 h-6 border-2 border-amber-900/20 border-t-amber-900 rounded-full animate-spin" />
+                            ) : (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleRetryImage("fieldA"); }}
+                                className="p-2 rounded-full bg-amber-900/5 hover:bg-amber-900/10 text-amber-900/40 hover:text-amber-900 transition-all"
+                                title="Retry Generation"
+                              >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></svg>
+                              </button>
+                            )}
+                            <span className="text-[7px] font-mono text-amber-900/30 uppercase tracking-tighter">Missing Material</span>
+                          </div>
                         )}
                       </div>
                       <div className="mt-2 text-center">
@@ -853,8 +910,22 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
                         {generatedImages.map ? (
                           <img src={generatedImages.map} alt="Tactical Map" className="absolute inset-0 w-full h-full object-cover" />
                         ) : (
-                          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 z-10">
+                            {retryingIds.has("map") ? (
+                              <div className="w-8 h-8 border-3 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                            ) : (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleRetryImage("map"); }}
+                                className="p-3 rounded-full bg-blue-500/10 hover:bg-blue-500/20 text-blue-400/50 hover:text-blue-400 transition-all border border-blue-500/20 shadow-lg backdrop-blur-sm"
+                                title="Retry Generation"
+                              >
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></svg>
+                              </button>
+                            )}
+                            <span className="text-[8px] font-mono text-blue-400/30 uppercase tracking-[0.2em] mt-2">Map Materialization Failed</span>
+                          </div>
                         )}
+                        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: "linear-gradient(#3b82f6 1px, transparent 1px), linear-gradient(90deg, #3b82f6 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
                         {/* Tactical Markers Overlay */}
                         <div className="absolute top-1/4 left-1/3 z-10">
                           <div className="w-2 h-2 bg-red-600 rounded-full animate-ping absolute" />
@@ -877,7 +948,20 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
                         {generatedImages.fieldC ? (
                           <img src={generatedImages.fieldC} alt="Field Report C" className="w-full h-full object-cover" />
                         ) : (
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-amber-900/10"><circle cx="12" cy="12" r="10" /><path d="M12 2a10 10 0 1 0 10 10" /><circle cx="12" cy="12" r="3" /></svg>
+                          <div className="flex flex-col items-center gap-2">
+                            {retryingIds.has("fieldC") ? (
+                              <div className="w-5 h-5 border-2 border-amber-900/20 border-t-amber-900 rounded-full animate-spin" />
+                            ) : (
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); handleRetryImage("fieldC"); }}
+                                className="p-1.5 rounded-full bg-amber-900/5 hover:bg-amber-900/10 text-amber-900/30 hover:text-amber-900 transition-all"
+                                title="Retry Generation"
+                              >
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></svg>
+                              </button>
+                            )}
+                            <span className="text-[6px] font-mono text-amber-900/20 uppercase tracking-tighter">Missing Data</span>
+                          </div>
                         )}
                       </div>
                       <div className="mt-2 text-center">
@@ -1490,7 +1574,7 @@ export default function CaseView({ caseData, caseIndex, totalCases, character, t
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
-                placeholder="Type your final analysis report here..."
+                placeholder="Enter your 1-word final analysis..."
                 className="w-full h-24 bg-black/50 border border-black/20 rounded-lg p-5 text-amber-100 text-sm focus:ring-1 focus:ring-amber-500/50 outline-none transition-all placeholder:text-amber-100/10 font-mono mb-4"
                 disabled={feedback?.correct}
               />

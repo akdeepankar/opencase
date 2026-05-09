@@ -81,31 +81,49 @@ export async function generateImage({
   ratio = '1280:720',
   seed,
 }: ImageGenerationOptions) {
-  try {
-    console.log(`[Runway] Initializing Gen4 image generation for: "${promptText.substring(0, 50)}..."`);
-    
-    const task = await client.textToImage.create({
-      model: 'gen4_image',
-      promptText,
-      ratio,
-      seed,
-    });
+  let attempts = 0;
+  const maxAttempts = 2;
 
-    let currentTask = await client.tasks.retrieve(task.id);
-    while (currentTask.status !== 'SUCCEEDED' && currentTask.status !== 'FAILED') {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      currentTask = await client.tasks.retrieve(task.id);
+  while (attempts < maxAttempts) {
+    try {
+      attempts++;
+      console.log(`[Runway] Initializing Gen4 image generation (Attempt ${attempts}/${maxAttempts}) for: "${promptText.substring(0, 50)}..."`);
+      
+      const task = await client.textToImage.create({
+        model: 'gen4_image',
+        promptText,
+        ratio,
+        seed,
+      });
+
+      let currentTask = await client.tasks.retrieve(task.id);
+      while (currentTask.status !== 'SUCCEEDED' && currentTask.status !== 'FAILED') {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // Increased poll time slightly
+        currentTask = await client.tasks.retrieve(task.id);
+      }
+
+      if (currentTask.status === 'FAILED') {
+        console.warn(`[Runway] Image task failed on attempt ${attempts}: ${currentTask.failure || 'Unknown error'}`);
+        if (attempts < maxAttempts) {
+          console.log(`[Runway] Retrying in 3 seconds...`);
+          await new Promise(r => setTimeout(r, 3000));
+          continue;
+        }
+        throw new Error(`Runway image task failed: ${currentTask.failure || 'Unknown error'}`);
+      }
+
+      return currentTask;
+    } catch (error) {
+      if (attempts < maxAttempts) {
+        console.error(`[Runway] Catch error on attempt ${attempts}, retrying...`, error);
+        await new Promise(r => setTimeout(r, 3000));
+        continue;
+      }
+      console.error('[Runway] Image Generation Error after max attempts:', error);
+      throw error;
     }
-
-    if (currentTask.status === 'FAILED') {
-      throw new Error(`Runway image task failed: ${currentTask.failure || 'Unknown error'}`);
-    }
-
-    return currentTask;
-  } catch (error) {
-    console.error('[Runway] Image Generation Error:', error);
-    throw error;
   }
+  throw new Error('Image generation failed after maximum retries');
 }
 
 /**

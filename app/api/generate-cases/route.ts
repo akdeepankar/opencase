@@ -55,7 +55,9 @@ RULES:
 - Each case MUST have exactly 4 lab_items with unique short ids, relevant labels, appropriate emoji icons, and type "text". Note: A 'Visual Scan' tool (id: "visual") is automatically added to every case, so you do not need to list it in lab_items, but you SHOULD use it in lab_combinations.
 - Each case MUST have exactly 6 lab_combinations. At least 2 of these combinations MUST involve the "visual" item (id: "visual") combined with one of your 4 custom items. Each combination needs a descriptive image generation prompt (for AI image generation showing forensic analysis) and a clue string that gives the player a hint about solving the case.
 - Each case MUST include a "lab_hint" string (a brief suggestion for the player on what items to try connecting in the forensic lab, e.g., "Try connecting the DNA sample to the Visual Scan tool").
-- Each case MUST include a "terminal_video_prompt" (a descriptive prompt for generating a short forensic video clip related to the case) and a "terminal_audio_text" (a short 1-2 sentence report or confession to be converted to speech).`;
+- Each case MUST include a "terminal_video_prompt" (a descriptive prompt for generating a short CCTV-style security footage clip, grainy, high-angle, or surveillance-oriented related to the case) and a "terminal_audio_text" (a short 1-2 sentence report or confession to be converted to speech).
+- The "expected_answer" MUST be exactly one word.
+- The "question" should be designed so it can be answered with that single word.`;
 
 export async function POST(request: NextRequest) {
   try {

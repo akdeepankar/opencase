@@ -7,7 +7,7 @@ import Dashboard from "./components/Dashboard";
 import CaseView from "./components/CaseView";
 import ReportScreen from "./components/ReportScreen";
 import CinematicScreen from "./components/CinematicScreen";
-import { DEMO_TOPIC, DEMO_CHARACTER, DEMO_CASES, DEMO_INVESTIGATION_TITLE } from "./demoData";
+import { DEMO_TOPIC, DEMO_CHARACTER, DEMO_CASES, DEMO_INVESTIGATION_TITLE, PHOTOSYNTHESIS_TOPIC, PHOTOSYNTHESIS_CHARACTER, PHOTOSYNTHESIS_CASES, PHOTOSYNTHESIS_INVESTIGATION_TITLE } from "./demoData";
 
 export default function Home() {
   const [phase, setPhase] = useState<GamePhase>("landing");
@@ -25,11 +25,13 @@ export default function Home() {
     setError(null);
 
     // Skip API for demo mode
-    if (inputTopic === DEMO_TOPIC) {
+    if (inputTopic === DEMO_TOPIC || inputTopic === PHOTOSYNTHESIS_TOPIC) {
+      const isPhoto = inputTopic === PHOTOSYNTHESIS_TOPIC;
       setTimeout(() => {
-        setCharacter(DEMO_CHARACTER);
-        setInvestigationTitle(DEMO_INVESTIGATION_TITLE);
-        setCases(DEMO_CASES.map((c, i) => ({ ...c, status: i === 0 ? "unlocked" : "locked" })));
+        setCharacter(isPhoto ? PHOTOSYNTHESIS_CHARACTER : DEMO_CHARACTER);
+        setInvestigationTitle(isPhoto ? PHOTOSYNTHESIS_INVESTIGATION_TITLE : DEMO_INVESTIGATION_TITLE);
+        const sourceCases = isPhoto ? PHOTOSYNTHESIS_CASES : DEMO_CASES;
+        setCases(sourceCases.map((c, i) => ({ ...c, status: i === 0 ? "unlocked" : "locked" })));
         setCurrentCaseIndex(0);
         setAnswers([]);
         setPhase("cinematic");
